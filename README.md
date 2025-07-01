@@ -17,7 +17,7 @@ Projeto fullstack para cadastro, listagem, atualização, exclusão e **registro
 1. Clone o projeto
 
 ```bash
-git clone https://github.com/seu-usuario/seu-repo.git
+git clone https://github.com/Guih0412/T5.git
 cd atvv-pl-typescript
 ```
 
