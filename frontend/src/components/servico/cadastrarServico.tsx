@@ -6,17 +6,25 @@ interface Props {
   onHide: () => void;
 }
 
+interface Servico {
+  id?: number;
+  nome: string;
+  preco: string;
+}
+
 const CadastrarServico: React.FC<Props> = ({ show, onHide }) => {
   const [step, setStep] = useState(1);
-  const [servico, setServico] = useState({
-    codigo: "",
+  const [servico, setServico] = useState<Servico>({
     nome: "",
     preco: "",
   });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setServico((prev) => ({ ...prev, [name]: value }));
+    setServico((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const next = () => {
@@ -27,24 +35,44 @@ const CadastrarServico: React.FC<Props> = ({ show, onHide }) => {
     if (step > 1) setStep(step - 1);
   };
 
-  const limparCampos = () => {
-    setStep(1);
-    setServico({
-      codigo: "",
-      nome: "",
-      preco: "",
-    });
-  };
+  const handleSalvar = async () => {
+    try {
+      const servicoComId = {
+        ...servico,
+      };
 
-  const handleSalvar = () => {
-    alert("Serviço cadastrado com sucesso!");
-    limparCampos();
-    onHide();
+      const response = await fetch("http://localhost:3000/servicos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(servicoComId),
+      });
+
+      if (!response.ok) throw new Error("Erro ao cadastrar serviço");
+
+      const servicoCriado = await response.json();
+
+      alert(`📝 Serviço de ID ${servicoCriado.id} cadastrado com sucesso!`);
+      resetForm();
+      onHide();
+    } catch (error) {
+      console.error("Erro ao cadastrar serviço:", error);
+      alert("❌ Erro ao cadastrar serviço.");
+    }
   };
 
   const handleVoltar = () => {
-    limparCampos();
+    resetForm();
     onHide();
+  };
+
+  const resetForm = () => {
+    setStep(1);
+    setServico({
+      nome: "",
+      preco: "",
+    });
   };
 
   return (
@@ -56,15 +84,6 @@ const CadastrarServico: React.FC<Props> = ({ show, onHide }) => {
         <Form>
           {step === 1 && (
             <>
-              <Form.Group className="mb-3">
-                <Form.Label>Código</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="codigo"
-                  value={servico.codigo}
-                  onChange={handleChange}
-                />
-              </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Nome</Form.Label>
                 <Form.Control
@@ -78,15 +97,17 @@ const CadastrarServico: React.FC<Props> = ({ show, onHide }) => {
           )}
 
           {step === 2 && (
-            <Form.Group className="mb-3">
-              <Form.Label>Preço</Form.Label>
-              <Form.Control
-                type="text"
-                name="preco"
-                value={servico.preco}
-                onChange={handleChange}
-              />
-            </Form.Group>
+            <>
+              <Form.Group className="mb-3">
+                <Form.Label>Preço</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="preco"
+                  value={servico.preco}
+                  onChange={handleChange}
+                />
+              </Form.Group>
+            </>
           )}
         </Form>
       </Modal.Body>

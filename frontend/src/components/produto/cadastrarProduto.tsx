@@ -6,10 +6,16 @@ interface Props {
   onHide: () => void;
 }
 
+interface Produto {
+  id?: number;
+  nome: string;
+  preco: string;
+  estoque: string;
+}
+
 const CadastrarProduto: React.FC<Props> = ({ show, onHide }) => {
   const [step, setStep] = useState(1);
-  const [produto, setProduto] = useState({
-    codigo: "",
+  const [produto, setProduto] = useState<Produto>({
     nome: "",
     preco: "",
     estoque: "",
@@ -31,10 +37,31 @@ const CadastrarProduto: React.FC<Props> = ({ show, onHide }) => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSalvar = () => {
-    alert("Produto cadastrado com sucesso!");
-    resetForm();
-    onHide();
+  const handleSalvar = async () => {
+    try {
+      const produtoComId = {
+        ...produto,
+      };
+
+      const response = await fetch("http://localhost:3000/produtos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(produtoComId),
+      });
+
+      if (!response.ok) throw new Error("Erro ao cadastrar produto");
+
+      const produtoCriado = await response.json();
+
+      alert(`📝 Produto de ID ${produtoCriado.id} cadastrado com sucesso!`);
+      resetForm();
+      onHide();
+    } catch (error) {
+      console.error("Erro ao cadastrar produto:", error);
+      alert("❌ Erro ao cadastrar produto.");
+    }
   };
 
   const handleVoltar = () => {
@@ -45,7 +72,6 @@ const CadastrarProduto: React.FC<Props> = ({ show, onHide }) => {
   const resetForm = () => {
     setStep(1);
     setProduto({
-      codigo: "",
       nome: "",
       preco: "",
       estoque: "",
@@ -61,15 +87,6 @@ const CadastrarProduto: React.FC<Props> = ({ show, onHide }) => {
         <Form>
           {step === 1 && (
             <>
-              <Form.Group className="mb-3">
-                <Form.Label>Código</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="codigo"
-                  value={produto.codigo}
-                  onChange={handleChange}
-                />
-              </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Nome</Form.Label>
                 <Form.Control

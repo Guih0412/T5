@@ -5,7 +5,7 @@ import clienteController from './controllers/clienteController'
 import petController from './controllers/petController'
 import produtoController from './controllers/produtoController'
 import servicoController from './controllers/servicoController'
-import consumoController from './controllers/consumoController'
+
 
 const router = Router()
 
@@ -38,14 +38,6 @@ router.get('/servicos/:id', servicoController.buscarPorId)
 router.put('/servicos/:id', servicoController.atualizar)
 router.delete('/servicos/:id', servicoController.deletar)
 
-// Rotas de Consumo
-router.post('/consumo', consumoController.registrar)
-router.get('/consumo', consumoController.listar)
 
-// Relatórios
-router.get('/relatorios/top-clientes-quantidade', consumoController.topClientesPorQuantidade)
-router.get('/relatorios/top-clientes-valor', consumoController.topClientesPorValor)
-router.get('/relatorios/mais-consumidos', consumoController.produtosMaisConsumidos)
-router.get('/relatorios/por-tipo-raca', consumoController.consumoPorTipoERaca)
 
 export default router

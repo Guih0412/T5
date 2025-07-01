@@ -190,6 +190,7 @@ export default function Produto() {
           show={mostrarModalExclusao}
           onHide={() => setMostrarModalExclusao(false)}
         />
+        
       </div>
     </div>
   );

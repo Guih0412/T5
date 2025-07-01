@@ -1,5 +1,5 @@
 import React, { useState, ChangeEvent } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button, Form, Spinner } from "react-bootstrap";
 
 interface Props {
   show: boolean;
@@ -8,105 +8,160 @@ interface Props {
 
 const ExcluirPet: React.FC<Props> = ({ show, onHide }) => {
   const [step, setStep] = useState(1);
-  const [cpfCliente, setCpfCliente] = useState("");
-  const [rgPet, setRgPet] = useState("");
+  const [clienteId, setClienteId] = useState("");
+  const [petId, setPetId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === "cpfCliente") setCpfCliente(value);
-    else if (name === "rgPet") setRgPet(value);
+    if (name === "clienteId") setClienteId(value);
+    else if (name === "petId") setPetId(value);
+    setErro(null);
   };
 
   const next = () => {
-    if (step < 3) setStep(step + 1);
+    setStep(step + 1);
   };
 
   const back = () => {
     if (step === 1) {
-      onHide();
-      setStep(1);
-      setCpfCliente("");
-      setRgPet("");
+      fechar();
     } else {
       setStep(step - 1);
     }
   };
 
-  const handleConfirm = () => {
-    alert("Pet excluído com sucesso!");
-    onHide();
+  const fechar = () => {
     setStep(1);
-    setCpfCliente("");
-    setRgPet("");
+    setClienteId("");
+    setPetId("");
+    setErro(null);
+    setLoading(false);
+    onHide();
+  };
+
+  const handleExcluirPet = async () => {
+    setLoading(true);
+    setErro(null);
+
+    try {
+      const petIdNum = Number(petId);
+      const clienteIdNum = Number(clienteId);
+
+      if (!petIdNum || !clienteIdNum) throw new Error("IDs inválidos");
+
+      // (opcional) Buscar o pet antes para confirmar que pertence ao cliente
+      const petRes = await fetch(`http://localhost:3000/pets/${petIdNum}`);
+      if (!petRes.ok) throw new Error("Pet não encontrado");
+
+      const petData = await petRes.json();
+      if (petData.clienteId !== clienteIdNum) {
+        throw new Error("Este pet não pertence ao cliente informado.");
+      }
+
+      // Deleta o pet
+      const deleteRes = await fetch(`http://localhost:3000/pets/${petIdNum}`, {
+        method: "DELETE",
+      });
+
+      if (!deleteRes.ok) throw new Error("Erro ao excluir o pet.");
+
+      alert("✅ Pet excluído com sucesso!");
+      fechar();
+    } catch (err: any) {
+      setErro(err.message || "Erro ao excluir pet.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Modal show={show} onHide={back} centered size="lg">
+    <Modal show={show} onHide={fechar} centered size="lg">
       <Modal.Header closeButton className="modalHeader">
         <Modal.Title>Excluir Pet</Modal.Title>
       </Modal.Header>
+
       <Modal.Body className="modalBody">
+        {erro && <p style={{ color: "red" }}>{erro}</p>}
+        {loading && <Spinner animation="border" />}
+
         {step === 1 && (
           <Form.Group className="mb-3">
-            <Form.Label>Digite o CPF do cliente dono do pet</Form.Label>
+            <Form.Label>ID do Cliente dono do pet</Form.Label>
             <Form.Control
               type="text"
-              name="cpfCliente"
-              value={cpfCliente}
+              name="clienteId"
+              value={clienteId}
               onChange={handleChange}
+              disabled={loading}
             />
           </Form.Group>
         )}
 
         {step === 2 && (
           <Form.Group className="mb-3">
-            <Form.Label>Digite o RG do pet a ser excluído</Form.Label>
+            <Form.Label>ID do Pet a ser excluído</Form.Label>
             <Form.Control
               type="text"
-              name="rgPet"
-              value={rgPet}
+              name="petId"
+              value={petId}
               onChange={handleChange}
+              disabled={loading}
             />
           </Form.Group>
         )}
 
         {step === 3 && (
           <p>
-            Tem certeza que deseja excluir o pet com RG <strong>{rgPet}</strong> do cliente com CPF <strong>{cpfCliente}</strong>?
-            <br />
+            Tem certeza que deseja excluir o pet de ID <strong>{petId}</strong> do cliente <strong>{clienteId}</strong>?<br />
             Essa ação não poderá ser desfeita.
           </p>
         )}
       </Modal.Body>
+
       <Modal.Footer style={{ backgroundColor: "rgb(255, 161, 106)" }}>
         {step > 1 && (
           <Button
-            style={{ backgroundColor: "rgb(69,32,23)", borderColor: "rgb(69,32,23)" }}
             onClick={back}
+            disabled={loading}
+            style={{ backgroundColor: "rgb(69,32,23)", borderColor: "rgb(69,32,23)" }}
           >
             ⬅ Voltar
           </Button>
         )}
+
         {step < 3 && (
           <Button
-            style={{ backgroundColor: "rgb(69,32,23)", borderColor: "rgb(69,32,23)" }}
             onClick={next}
             disabled={
-              (step === 1 && !cpfCliente.trim()) ||
-              (step === 2 && !rgPet.trim())
+              loading ||
+              (step === 1 && !clienteId.trim()) ||
+              (step === 2 && !petId.trim())
             }
+            style={{ backgroundColor: "rgb(69,32,23)", borderColor: "rgb(69,32,23)" }}
           >
             Próximo ➡
           </Button>
         )}
+
         {step === 3 && (
           <Button
+            onClick={handleExcluirPet}
+            disabled={loading}
             style={{ backgroundColor: "rgb(69,32,23)", borderColor: "rgb(69,32,23)" }}
-            onClick={handleConfirm}
           >
             🗑️ Excluir
           </Button>
         )}
+
+        <Button
+          onClick={fechar}
+          disabled={loading}
+          style={{ backgroundColor: "rgb(69,32,23)", borderColor: "rgb(69,32,23)" }}
+        >
+          Fechar
+        </Button>
       </Modal.Footer>
     </Modal>
   );

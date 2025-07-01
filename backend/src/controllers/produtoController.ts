@@ -3,14 +3,31 @@ import { prisma } from '../models/prisma/client'
 
 const criar: RequestHandler = async (req, res) => {
   try {
-    const data = req.body
-    const produto = await prisma.produto.create({ data })
-    res.status(201).json(produto)
-  } catch (err) {
-    console.error(err)
-    res.status(400).json({ erro: 'Erro ao criar produto' })
+    const data = req.body;
+
+    // Conversões seguras
+    const preco = parseFloat(data.preco.replace(",", "."));
+    const estoque = parseInt(data.estoque);
+
+    if (isNaN(preco) || isNaN(estoque)) {
+      res.status(400).json({ erro: "Preço ou estoque inválido." });
+      return;
+    }
+
+    const produto = await prisma.produto.create({
+      data: {
+        nome: data.nome,
+        preco,
+        estoque,
+      },
+    });
+
+    res.status(201).json(produto);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao criar produto" });
   }
-}
+};
 
 const listar: RequestHandler = async (req, res) => {
   try {
@@ -42,19 +59,39 @@ const buscarPorId: RequestHandler = async (req, res) => {
 }
 
 const atualizar: RequestHandler = async (req, res) => {
-  const { id } = req.params
-  const data = req.body
+  const { id } = req.params;
+  const data = req.body;
+
+  
+  if (data.preco && typeof data.preco === 'string') {
+    const precoConvertido = parseFloat(data.preco.replace(',', '.'));
+    if (isNaN(precoConvertido)) {
+      res.status(400).json({ erro: 'Preço inválido' });
+    }
+    data.preco = precoConvertido;
+  }
+
+  if (data.estoque && typeof data.estoque === 'string') {
+    const estoqueConvertido = parseInt(data.estoque);
+    if (isNaN(estoqueConvertido)) {
+      res.status(400).json({ erro: 'Estoque inválido' });
+      return;
+    }
+    data.estoque = estoqueConvertido;
+  }
+
   try {
     const produto = await prisma.produto.update({
       where: { id: Number(id) },
       data,
-    })
-    res.json(produto)
+    });
+
+    res.json(produto);
   } catch (err) {
-    console.error(err)
-    res.status(400).json({ erro: 'Erro ao atualizar produto' })
+    console.error(err);
+    res.status(400).json({ erro: 'Erro ao atualizar produto' });
   }
-}
+};
 
 const deletar: RequestHandler = async (req, res) => {
   const { id } = req.params

@@ -1,5 +1,5 @@
 import React, { useState, ChangeEvent } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button, Form, Spinner } from "react-bootstrap";
 
 interface Props {
   show: boolean;
@@ -7,16 +7,18 @@ interface Props {
 }
 
 interface Pet {
+  id?: number;
   nome: string;
   genero: string;
   raca: string;
   tipo: string;
+  clienteId?: number;
 }
 
 const AtualizarPet: React.FC<Props> = ({ show, onHide }) => {
   const [step, setStep] = useState(1);
-  const [cpfDono, setCpfDono] = useState("");
-  const [rgPet, setRgPet] = useState("");
+  const [donoIdInput, setDonoIdInput] = useState("");
+  const [petIdInput, setPetIdInput] = useState("");
   const [pet, setPet] = useState<Pet>({
     nome: "",
     genero: "",
@@ -24,44 +26,100 @@ const AtualizarPet: React.FC<Props> = ({ show, onHide }) => {
     tipo: "",
   });
 
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [petOriginal, setPetOriginal] = useState<Pet | null>(null);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === "cpfDono") {
-      setCpfDono(value);
-    } else if (name === "rgPet") {
-      setRgPet(value);
-    } else {
-      setPet((prevPet) => ({
-        ...prevPet,
-        [name]: value,
-      }));
+    if (name === "donoIdInput") setDonoIdInput(value);
+    else if (name === "petIdInput") setPetIdInput(value);
+    else setPet((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const next = async () => {
+    setErro(null);
+
+    if (step === 1) {
+      const id = Number(donoIdInput);
+      if (!id || id <= 0) return setErro("ID do dono inválido.");
+
+      try {
+        setCarregando(true);
+        const res = await fetch(`http://localhost:3000/clientes/${id}`);
+        if (!res.ok) throw new Error("Dono não encontrado.");
+        setStep(2);
+      } catch (err: any) {
+        setErro(err.message);
+      } finally {
+        setCarregando(false);
+      }
+    }
+
+    else if (step === 2) {
+      const petId = Number(petIdInput);
+      if (!petId || petId <= 0) return setErro("ID do pet inválido.");
+
+      try {
+        setCarregando(true);
+        const res = await fetch(`http://localhost:3000/pets/${petId}`);
+        if (!res.ok) throw new Error("Pet não encontrado.");
+
+        const data: Pet = await res.json();
+        if (data.clienteId !== Number(donoIdInput)) {
+          throw new Error("❌ Este pet não pertence ao dono informado.");
+        }
+
+        setPet(data);
+        setPetOriginal(data); // para saber o id na hora de salvar
+        setStep(3);
+      } catch (err: any) {
+        setErro(err.message);
+      } finally {
+        setCarregando(false);
+      }
+    }
+
+    else if (step === 3) {
+      setStep(4);
     }
   };
 
-  const next = () => {
-    setStep((prev) => (prev < 4 ? prev + 1 : prev));
-  };
-
   const back = () => {
+    setErro(null);
     setStep((prev) => (prev > 1 ? prev - 1 : prev));
   };
 
   const resetForm = () => {
     setStep(1);
-    setCpfDono("");
-    setRgPet("");
-    setPet({
-      nome: "",
-      genero: "",
-      raca: "",
-      tipo: "",
-    });
+    setDonoIdInput("");
+    setPetIdInput("");
+    setPet({ nome: "", genero: "", raca: "", tipo: "" });
+    setErro(null);
+    setPetOriginal(null);
   };
 
-  const handleAtualizar = () => {
-    alert("Pet atualizado com sucesso!");
-    resetForm();
-    onHide();
+  const handleAtualizar = async () => {
+    if (!petOriginal?.id) {
+      alert("ID do pet não localizado.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:3000/pets/${petOriginal.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...pet, clienteId: Number(donoIdInput) }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao atualizar o pet.");
+
+      alert("✅ Pet atualizado com sucesso!");
+      resetForm();
+      onHide();
+    } catch (err: any) {
+      alert(err.message || "Erro ao atualizar.");
+    }
   };
 
   const handleCancelar = () => {
@@ -74,15 +132,19 @@ const AtualizarPet: React.FC<Props> = ({ show, onHide }) => {
       <Modal.Header closeButton className="modalHeader">
         <Modal.Title>Atualizar Pet</Modal.Title>
       </Modal.Header>
+
       <Modal.Body className="modalBody">
+        {erro && <p style={{ color: "red" }}>{erro}</p>}
+        {carregando && <Spinner animation="border" />}
+
         <Form>
           {step === 1 && (
             <Form.Group className="mb-3">
-              <Form.Label>Digite o CPF do dono do pet</Form.Label>
+              <Form.Label>ID do Dono</Form.Label>
               <Form.Control
                 type="text"
-                name="cpfDono"
-                value={cpfDono}
+                name="donoIdInput"
+                value={donoIdInput}
                 onChange={handleChange}
               />
             </Form.Group>
@@ -90,11 +152,11 @@ const AtualizarPet: React.FC<Props> = ({ show, onHide }) => {
 
           {step === 2 && (
             <Form.Group className="mb-3">
-              <Form.Label>Digite o RG do pet</Form.Label>
+              <Form.Label>ID do Pet</Form.Label>
               <Form.Control
                 type="text"
-                name="rgPet"
-                value={rgPet}
+                name="petIdInput"
+                value={petIdInput}
                 onChange={handleChange}
               />
             </Form.Group>
@@ -142,6 +204,7 @@ const AtualizarPet: React.FC<Props> = ({ show, onHide }) => {
           )}
         </Form>
       </Modal.Body>
+
       <Modal.Footer style={{ backgroundColor: "rgb(255, 161, 106)" }}>
         {step > 1 && (
           <Button

@@ -8,7 +8,7 @@ import Pet from "../pages/pet";
 import Produto from "../pages/produto";
 import Servico from "../pages/servico";
 import Header from "./header";
-import Relatorio from "../pages/relatorio";
+
 
 
 export default function Roteador() {
@@ -18,7 +18,7 @@ export default function Roteador() {
         navigate(`/${view.toLowerCase()}`);
     }
 
-    const botoes = ['Home', 'Clientes', 'Pets', 'Produtos', 'Servicos','Relatorios'];
+    const botoes = ['Home', 'Clientes', 'Pets', 'Produtos', 'Servicos'];
 
     return (
         <>
@@ -30,7 +30,6 @@ export default function Roteador() {
                 <Route path="/pets" element={<Pet/>}/>
                 <Route path="/produtos" element={<Produto/>}/>
                 <Route path="/servicos" element={<Servico/>}/>
-                <Route path="/relatorios" element={<Relatorio/>}/>
             </Routes>
 
             <Footer botoes={botoes} tema="rgb(255,123,0)"/>

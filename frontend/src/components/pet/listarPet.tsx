@@ -86,6 +86,7 @@ const ListarPets: React.FC<Props> = ({ show, onHide }) => {
               paddingBottom: "0.5rem",
             }}
           >
+            <p><strong>ID:</strong> {pet.id}</p> {/* <-- aqui */}
             <p><strong>Nome do Pet:</strong> {pet.nome}</p>
             <p><strong>Gênero:</strong> {pet.genero}</p>
             <p><strong>Raça:</strong> {pet.raca}</p>

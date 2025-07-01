@@ -3,14 +3,30 @@ import { prisma } from '../models/prisma/client'
 
 const criar: RequestHandler = async (req, res) => {
   try {
-    const data = req.body
-    const servico = await prisma.servico.create({ data })
-    res.status(201).json(servico)
-  } catch (err) {
-    console.error(err)
-    res.status(400).json({ erro: 'Erro ao criar serviço' })
+    const data = req.body;
+
+    
+    const preco = parseFloat(data.preco.replace(",", "."));
+    
+    if (isNaN(preco)) {
+      res.status(400).json({ erro: "Preço inválido." });
+      return;
+    }
+
+    
+    const servico = await prisma.servico.create({
+      data: {
+        nome: data.nome,
+        preco,  
+      },
+    });
+
+    res.status(201).json(servico);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ erro: "Erro ao criar serviço" });
   }
-}
+};
 
 const listar: RequestHandler = async (req, res) => {
   try {
@@ -42,19 +58,31 @@ const buscarPorId: RequestHandler = async (req, res) => {
 }
 
 const atualizar: RequestHandler = async (req, res) => {
-  const { id } = req.params
-  const data = req.body
+  const { id } = req.params;
+  const data = req.body;
+
+  // Se preco vier e for string, converte
+  if (data.preco && typeof data.preco === "string") {
+    const precoConvertido = parseFloat(data.preco.replace(",", "."));
+    if (isNaN(precoConvertido)) {
+      res.status(400).json({ erro: "Preço inválido" });
+      return;
+    }
+    data.preco = precoConvertido;
+  }
+
   try {
     const servico = await prisma.servico.update({
       where: { id: Number(id) },
       data,
-    })
-    res.json(servico)
+    });
+    res.json(servico);
   } catch (err) {
-    console.error(err)
-    res.status(400).json({ erro: 'Erro ao atualizar serviço' })
+    console.error(err);
+    res.status(400).json({ erro: "Erro ao atualizar serviço" });
   }
-}
+};
+
 
 const deletar: RequestHandler = async (req, res) => {
   const { id } = req.params
