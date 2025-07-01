@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Cliente {
+  id          Int       @id @default(autoincrement())
+  nome        String
+  nomeSocial  String
+  ddd         String
+  telefone    String
+  rg          String
+  rgEmissao   DateTime
+  cpf         String
+  cpfEmissao  DateTime
+  email       String
+
+  pets        Pet[]
+  consumos    Consumo[]
+}
+
+model Pet {
+  id          Int      @id @default(autoincrement())
+  nome        String
+  genero      String
+  raca        String
+  tipo        String
+
+  clienteId   Int
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  
+  consumos    Consumo[]
+}
+
+model Produto {
+  id          Int       @id @default(autoincrement())
+  nome        String
+  preco       Float
+  estoque     Int
+
+  consumos    Consumo[]
+}
+
+model Servico {
+  id          Int       @id @default(autoincrement())
+  nome        String
+  preco       Float
+
+  consumos    Consumo[]
+}
+
+model Consumo {
+  id          Int       @id @default(autoincrement())
+
+  clienteId   Int
+  cliente     Cliente   @relation(fields: [clienteId], references: [id])
+
+  petId       Int?      // nem toda compra pode estar vinculada a um pet
+  pet         Pet?      @relation(fields: [petId], references: [id])
+
+  produtoId   Int?
+  produto     Produto?  @relation(fields: [produtoId], references: [id])
+
+  servicoId   Int?
+  servico     Servico?  @relation(fields: [servicoId], references: [id])
+
+  quantidade  Int
+  valorTotal  Float     // pode ser calculado como preco * quantidade, mas guardar é útil para histórico
+
+  dataCompra  DateTime  @default(now())
+}
